@@ -1,12 +1,10 @@
 Clear-Host
-#Задать пути и данные
+#Set Company and share variables
 $CompanyName = "TFM-Spectehnika"
 $DomainName = "krut.ru"
 $SigSource = "\\srv-db1\Config.1C$\Signatures"
-$ForceSignatureNew = 1 #Когда активированны, задает подпись по умолчанию для новых писем. 0 = no force, 1 = force
-$ForceSignatureReplyForward = 1 #Когда активированны, задает подпись по умолчанию для ответов/пересылок писем. 0 = no force, 1 = force
 
-#Постоянные переменные
+#Set System Variables
 $AppData=(Get-Item env:appdata).value
 $SigPath = "\Microsoft\Signatures"
 $LocalSignaturePath = $AppData+$SigPath
@@ -14,7 +12,7 @@ $RemoteSignaturePathFull = $SigSource+"\"+$CompanyName+".docx"
 $fullPath = $LocalSignaturePath+"\"+$CompanyName+".docx"
 $fullPathHTM = $LocalSignaturePath+"\"+$CompanyName+".htm"
 
-#Задать переменные пользователя
+#Connect and get ad data
 $UserName = $env:username
 $Filter = "(&(objectCategory=User)(samAccountName=$UserName))"
 $Searcher = New-Object System.DirectoryServices.DirectorySearcher
@@ -28,7 +26,7 @@ $ADTelePhoneNumber = $ADUser.TelephoneNumber
 $ADDepartment = $ADUser.Department
 $CompanyRegPath = "HKCU:\Software\"+$CompanyName
 
-#Функция проверки реестра
+#Function detect keyvalue in regestry
 function isRegistryValue {
     param (
         [parameter(Mandatory = $true)]
@@ -43,19 +41,19 @@ function isRegistryValue {
 }
 
 
-#Функция Удаления папок
+#Function delete path
 Function DELETE_PATH { 
 If (Test-Path -Path $LocalSignaturePath) {
 Remove-Item -Path $LocalSignaturePath -Recurse
 }}
 
-#Функция для удаления Реестра
+#Delete registry path
 Function DELETE_REG {
 If (Test-Path -Path $CompanyRegPath) {
-Remove-Item –Path $CompanyRegPath –Recurse
+Remove-Item вЂ“Path $CompanyRegPath вЂ“Recurse
 }}
 
-#Функция Проверка существования веток реестра и создания в случае отсутствия
+#Create regestry path
 Function CREATE_REG {
 if (Test-Path $CompanyRegPath)
 {}
@@ -68,10 +66,10 @@ else
 {New-Item -path $CompanyRegPath -name "OutlookSignatureSettings"}
 }
 
-#Функция которая делает подпись основной по умолчанию
+#Function set default signatures
 Function Main_Sign {
 if (isRegistryValue -Path "HKCU:\Software\Microsoft\Office\16.0\Outlook\Setup" -ValueName ImportPRF) {
-    $currentState = (Get-ItemProperty –Path "HKCU:\Software\Microsoft\Office\16.0\Outlook\Setup" -Name $key.Value_Name).$( $key.Value_Name )
+    $currentState = (Get-ItemProperty вЂ“Path "HKCU:\Software\Microsoft\Office\16.0\Outlook\Setup" -Name $key.Value_Name).$( $key.Value_Name )
     if (($currentState -eq $key.Value) -or (([string]::IsNullOrEmpty($key.Value)) -and ([string]::IsNullOrEmpty($currentState))))
     {}
     else {
@@ -87,11 +85,9 @@ else {
 }
 }
 
-#Наполнение проверочной ветки реестра
+#Set regestry data
 Function REG_DATA {
-$SigVersion = (gci $RemoteSignaturePathFull).LastWriteTime #Задает время создания шаблона подписи
-$ForcedSignatureNew = (Get-ItemProperty $CompanyRegPath"\OutlookSignatureSettings").ForcedSignatureNew
-$ForcedSignatureReplyForward = (Get-ItemProperty $CompanyRegPath"\OutlookSignatureSettings").ForcedSignatureReplyForward
+$SigVersion = (gci $RemoteSignaturePathFull).LastWriteTime #Г‡Г Г¤Г ГҐГІ ГўГ°ГҐГ¬Гї Г±Г®Г§Г¤Г Г­ГЁГї ГёГ ГЎГ«Г®Г­Г  ГЇГ®Г¤ГЇГЁГ±ГЁ
 $SignatureVersion = (Get-ItemProperty $CompanyRegPath"\OutlookSignatureSettings").SignatureVersion
 Set-ItemProperty $CompanyRegPath"\OutlookSignatureSettings" -name SignatureSourceFiles -Value $SigSource
 New-ItemProperty $CompanyRegPath"\OutlookSignatureSettings" -name Title -PropertyType String -Value $ADTitle
@@ -101,12 +97,12 @@ New-ItemProperty $CompanyRegPath"\OutlookSignatureSettings" -name TelePhoneNumbe
 $SignatureSourceFiles = (Get-ItemProperty $CompanyRegPath"\OutlookSignatureSettings").SignatureSourceFiles
 }
 
-#Функция Создания Подписи
+#Generate signatures
 Function Create_SIGN { 
 
 Copy-Item -Path $SigSource $AppData"\Microsoft" -Recurse -Force
 
-#Задаем переменные для New-Object -com word.application
+#Variables for New-Object -com word.application
 $ReplaceAll = 2
 $FindContinue = 1
 $MatchCase = $True
@@ -118,7 +114,7 @@ $Forward = $True
 $Wrap = $FindContinue
 $Format = $False
 
-#Начинаем генерить
+#Run word applet and replace data
 $MSWord = New-Object -com word.application
 #$MSWord.Visible = $True
 $MSWord.Documents.Open($fullPath)
@@ -142,9 +138,9 @@ $MSWord.Selection.Find.Execute($FindText, $MatchCase, $MatchWholeWord, $MatchWil
 $MSWord.Selection.Find.Execute("Email")
 $MSWord.ActiveDocument.Hyperlinks.Add($MSWord.Selection.Range, "mailto:"+$ADEmailAddress.ToString(), $missing, $missing, $ADEmailAddress.ToString())
 
-#Сохраняем измененные документ
+#Save document
 $MSWord.ActiveDocument.Save()
-#Генерим HTM
+#Generate HTM
 $saveFormat = [Enum]::Parse([Microsoft.Office.Interop.Word.WdSaveFormat], "wdFormatHTML");
 [ref]$BrowserLevel = "microsoft.office.interop.word.WdBrowserLevel" -as [type]
 $MSWord.ActiveDocument.WebOptions.OrganizeInFolder = $true
@@ -153,15 +149,15 @@ $MSWord.ActiveDocument.WebOptions.BrowserLevel = $BrowserLevel::wdBrowserLevelMi
 $path = $LocalSignaturePath+"\"+$CompanyName+".htm"
 $MSWord.ActiveDocument.saveas([ref]$path, [ref]$saveFormat)
 
-#Генерим RTF
+#Generate RTF
 $saveFormat = [Enum]::Parse([Microsoft.Office.Interop.Word.WdSaveFormat], "wdFormatRTF");
 $path = $LocalSignaturePath+"\"+$CompanyName+".rtf"
 $MSWord.ActiveDocument.SaveAs([ref] $path, [ref]$saveFormat)
 
-#Генерим TXT
+#Generate TXT
 $saveFormat = [Enum]::Parse([Microsoft.Office.Interop.Word.WdSaveFormat], "wdFormatText");
 
-#Не нужное
+#Old code
 #$path = $LocalSignaturePath+"\"+$CompanyName+".rtf"
 #$MSWord.ActiveDocument.SaveAs([ref] $path, [ref]$saveFormat)
 
@@ -169,11 +165,9 @@ $path = $LocalSignaturePath+"\"+$CompanyName+".txt"
 $MSWord.ActiveDocument.SaveAs([ref] $path, [ref]$SaveFormat)
 $MSWord.ActiveDocument.Close()
 $MSWord.Quit()
-
-#}
 }
 
-#Проверки реестра на изменение информации о пользователе
+#Main massiv
 if ($ADTitle -eq ($Title = (Get-ItemProperty $CompanyRegPath"\OutlookSignatureSettings").Title))
     {if ($ADDepartment -eq ($Department = (Get-ItemProperty $CompanyRegPath"\OutlookSignatureSettings").Department))
         {if ($ADTelePhoneNumber -eq ($TelePhoneNumber = (Get-ItemProperty $CompanyRegPath"\OutlookSignatureSettings").TelePhoneNumber))
@@ -206,20 +200,4 @@ REG_DATA
 Create_SIGN
 Main_Sign}
 
-
-
-
-#Stamp registry-values for OutlookSignatureSettings if they doesn`t match the initial script variables. Note that these will apply after the second script run when changes are made in the Custom variables-section.
-#Кусок старого кода, что делает понятно, зачем нужен не совсем - основная идея скрипта это автоматизация, а эта часть по факту заставит вручную назначать подпись. Оставлю так как могу придумать сценарий использования.
-if ($ForcedSignatureNew -eq $ForceSignatureNew){}
-else
-{Set-ItemProperty $CompanyRegPath"\OutlookSignatureSettings" -name ForcedSignatureNew -Value $ForceSignatureNew}
-
-if ($ForcedSignatureReplyForward -eq $ForceSignatureReplyForward){}
-else
-{Set-ItemProperty $CompanyRegPath"\OutlookSignatureSettings" -name ForcedSignatureReplyForward -Value $ForceSignatureReplyForward}
-
-if ($SignatureVersion -eq $SigVersion){}
-else
-{Set-ItemProperty $CompanyRegPath"\OutlookSignatureSettings" -name SignatureVersion -Value $SigVersion}
 exit
