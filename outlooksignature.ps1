@@ -2,7 +2,7 @@ Clear-Host
 #Set Company and share variables
 $CompanyName = "TFM-Spectehnika"
 $DomainName = "krut.ru"
-$SigSource = "\\srv-db1\Config.1C$\Signatures"
+$SigSource = "\\net_share\Signatures"
 
 #Set System Variables
 $AppData=(Get-Item env:appdata).value
@@ -87,7 +87,7 @@ else {
 
 #Set regestry data
 Function REG_DATA {
-$SigVersion = (gci $RemoteSignaturePathFull).LastWriteTime #Çàäàåò âðåìÿ ñîçäàíèÿ øàáëîíà ïîäïèñè
+$SigVersion = (gci $RemoteSignaturePathFull).LastWriteTime #check signature version
 $SignatureVersion = (Get-ItemProperty $CompanyRegPath"\OutlookSignatureSettings").SignatureVersion
 Set-ItemProperty $CompanyRegPath"\OutlookSignatureSettings" -name SignatureSourceFiles -Value $SigSource
 New-ItemProperty $CompanyRegPath"\OutlookSignatureSettings" -name Title -PropertyType String -Value $ADTitle
