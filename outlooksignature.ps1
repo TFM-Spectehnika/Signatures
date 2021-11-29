@@ -1,7 +1,7 @@
 Clear-Host
 #Set Varibles
-$CompanyName = "TFM-Spectehnika"
-$SigSource = "\\srv-db1\Config.1C$\Signatures"
+$CompanyName = "Company"
+$SigSource = "\\net_share\Signatures"
 
 #Connect to ad and set Signatures Path
 $AppData=(Get-Item env:appdata).value
